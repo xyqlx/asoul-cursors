@@ -1,6 +1,7 @@
 import changeCursor from "./changeCursor";
 
 chrome.runtime.onInstalled.addListener(() => {
+    const tabSet = new Set<number>();
     chrome.contextMenus.create({
         id: 'setting',
         title: '光标设置',
@@ -8,7 +9,6 @@ chrome.runtime.onInstalled.addListener(() => {
     });
     chrome.contextMenus.onClicked.addListener(
         (info, tab) => {
-            console.log(info.menuItemId);
             if (info.menuItemId === 'setting') {
                 chrome.windows.create({
                     url: chrome.runtime.getURL("index.html"),
@@ -22,15 +22,28 @@ chrome.runtime.onInstalled.addListener(() => {
             }
         }
     );
-    chrome.webNavigation.onCompleted.addListener(async () => {
-        const queryOptions = { active: true, currentWindow: true };
-        let [tab] = await chrome.tabs.query(queryOptions);
-        if (tab.id) {
-            changeCursor(tab.id);
-        }
+    chrome.webNavigation.onCompleted.addListener(() => {
+        const queryOptions = { currentWindow: true };
+        chrome.tabs.query(queryOptions, (tabs) => {
+            console.log(tabs);
+            tabs.forEach((tab) => {
+                if (tab?.id && !tabSet.has(tab.id)) {
+                    changeCursor(tab.id);
+                    tabSet.add(tab.id);
+                }
+            });
+        });
     }, {
         url: [
-            { urlMatches: `.*` },
+            { urlMatches: `(http|https).*` },
         ]
+    });
+    // on page close
+    chrome.tabs.onRemoved.addListener((tabId) => {
+        tabSet.delete(tabId);
+    });
+    // on page refresh
+    chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+        tabSet.delete(tabId);
     });
 });
