@@ -1,0 +1,26 @@
+{
+    "name": "ASOUL光标",
+    "version": "1.0",
+    "description": "多希望你能看到",
+    "manifest_version": 3,
+    "background": {
+        "service_worker": "background.js"
+    },
+    "action": {
+        "default_popup": "index.html"
+    },
+    "web_accessible_resources": [
+        {
+            "resources": [ "assets/*" ],
+            "matches": [ "*://*/*" ]
+        }
+    ],
+    "permissions": [
+        "activeTab",
+        "webNavigation",
+        "scripting",
+        "tabs",
+        "contextMenus"
+    ],
+    "host_permissions": ["https://*/*"]
+}
