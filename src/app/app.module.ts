@@ -12,6 +12,16 @@ import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { NzTableModule } from 'ng-zorro-antd/table';
 import { NzButtonModule } from 'ng-zorro-antd/button';
 import { NzDividerModule } from 'ng-zorro-antd/divider';
+import { NzModalModule } from 'ng-zorro-antd/modal';
+import { NzInputModule } from 'ng-zorro-antd/input';
+import { NzUploadModule } from 'ng-zorro-antd/upload';
+import { IconDefinition } from '@ant-design/icons-angular';
+import { NzIconModule } from 'ng-zorro-antd/icon';
+import { NzInputNumberModule } from 'ng-zorro-antd/input-number';
+import { PlusOutline } from '@ant-design/icons-angular/icons';
+import { NzSwitchModule } from 'ng-zorro-antd/switch';
+
+const icons: IconDefinition[] = [ PlusOutline ];
 
 registerLocaleData(zh);
 
@@ -26,7 +36,13 @@ registerLocaleData(zh);
     BrowserAnimationsModule,
     NzTableModule,
     NzButtonModule,
-    NzDividerModule
+    NzDividerModule,
+    NzModalModule,
+    NzInputModule,
+    NzUploadModule,
+    NzIconModule.forRoot(icons),
+    NzInputNumberModule,
+    NzSwitchModule
   ],
   providers: [{ provide: NZ_I18N, useValue: zh_CN }],
   bootstrap: [AppComponent]

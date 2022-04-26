@@ -1,4 +1,4 @@
-<div>
+<div class="main">
   <nz-table #basicTable [nzData]="listOfData">
     <thead>
       <tr>
@@ -12,11 +12,45 @@
         <td>{{ data.name }}</td>
         <td>{{ data.pattern }}</td>
         <td>
-          <a>编辑</a>
+          <a (click)="editRule(data)">编辑</a>
           <nz-divider nzType="vertical"></nz-divider>
-          <a>删除</a>
+          <a (click)="deleteRule(data.id)">删除</a>
         </td>
       </tr>
     </tbody>
   </nz-table>
+  <div class="button-panel">
+    <button nz-button nzType="primary" (click)="add()">添加规则</button>
+  </div>
+  <nz-modal [nzWidth]="800" [(nzVisible)]="ruleModalVisible" nzTitle="规则设置" (nzOnCancel)="handleCancel()"
+    (nzOnOk)="handleOk()">
+    <ng-container *nzModalContent>
+      <input class="input-name" nz-input placeholder="规则名" [(ngModel)]="currentRule!.name" />
+      <textarea nz-input placeholder="匹配网址前缀（支持多行）" [(ngModel)]="currentRule!.pattern"></textarea>
+      <div class="cursor-panel">
+        <div *ngFor="let item of cursorTypes" class="cursor-item">
+          <nz-upload class="image-uploader" nzListType="picture-card" [nzShowUploadList]="false"
+            [nzCustomRequest]="customUpload(item)">
+            <div *ngIf="!currentRule!.cursor[item].data">
+              <i class="upload-icon" nz-icon nzType='plus'></i>
+              <div class="ant-upload-text">{{item}}</div>
+            </div>
+            <img *ngIf="currentRule!.cursor[item].data" [src]="currentRule!.cursor[item].data" alt="cursor image"
+              class="upload-image" />
+          </nz-upload>
+          <div *ngIf="currentRule" class="size-panel">
+            <nz-switch [ngModel]="currentRuleSizeSwitch![item]" (ngModelChange)="switchSize(item, $event)"
+              nzCheckedChildren="宽高" nzUnCheckedChildren="原始"></nz-switch>
+            <div *ngIf="currentRule!.cursor[item].size">
+              <nz-input-number class="size-input-number" title="宽" [nzMin]="1"
+                [(ngModel)]="currentRule!.cursor[item].size!.width"></nz-input-number>
+              <span>❌</span>
+              <nz-input-number class="size-input-number" title="高" [nzMin]="1"
+                [(ngModel)]="currentRule!.cursor[item].size!.height"></nz-input-number>
+            </div>
+          </div>
+        </div>
+      </div>
+    </ng-container>
+  </nz-modal>
 </div>
