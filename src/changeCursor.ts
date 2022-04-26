@@ -21,17 +21,23 @@ function setCursor(extensionUrl: string, size?: {width: number, height: number})
     let lastY = -1;
     let offsetX = 0;
     let offsetY = 0;
+    let scrollFlag = false;
+    // change mouse position
     const onmousemove = (e: any) => {
-        cursor.style.left = e.pageX + "px";
-        cursor.style.top = e.pageY + "px";
         lastX = e.pageX;
         lastY = e.pageY;
-        offsetX = window.scrollX;
-        offsetY = window.scrollY;
+        cursor.style.left = lastX + "px";
+        cursor.style.top = lastY + "px";
+        if(scrollFlag){
+            offsetX = window.scrollX;
+            offsetY = window.scrollY;
+            scrollFlag = false;
+        }
     };
     window.addEventListener("mousemove", onmousemove);
     document.addEventListener("dragover", onmousemove);
     window.addEventListener("scroll", (e) => {
+        scrollFlag = true;
         if (lastX === -1 || lastY === -1) {
             return;
         }
@@ -41,6 +47,7 @@ function setCursor(extensionUrl: string, size?: {width: number, height: number})
     let inited = false;
     let lastTarget: HTMLElement | null = null;
     let lastCursorType = 'none';
+    // check mouseover target
     document.addEventListener('mouseover', function(e){
         if(!inited){
             // document.documentElement.style.cursor = 'none';
@@ -49,12 +56,21 @@ function setCursor(extensionUrl: string, size?: {width: number, height: number})
         }
         if(e.target){
             if(lastTarget){
-                lastTarget.style.cursor = lastCursorType;
+                if(lastCursorType !== 'none' && lastCursorType !== 'auto' && lastCursorType !== 'default'){ 
+                    // 这句可能会导致 Forced reflow while executing JavaScript took 54ms
+                    lastTarget.style.cursor = lastCursorType;
+                }
             }
-            const cursorType = window.getComputedStyle(e.target as any)["cursor"];
             lastTarget = e.target as any;
-            lastCursorType = cursorType;
+            let cursorType = lastTarget!.style.cursor;
+            if(cursorType === ''){
+                cursorType = window.getComputedStyle(e.target as any)["cursor"];
+            }
             (e.target as any).style.cursor = 'none';
+            if(lastCursorType === cursorType){
+                return;
+            }
+            lastCursorType = cursorType;
             if(cursorType === 'pointer'){
                 cursor.style.visibility = "visible";
                 cursor.src = assetsUrl + '/ava/4.gif';
