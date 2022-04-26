@@ -1,7 +1,6 @@
 import changeCursor from "./changeCursor";
 
 chrome.runtime.onInstalled.addListener(() => {
-    const tabSet = new Set<number>();
     chrome.contextMenus.create({
         id: 'setting',
         title: '光标设置',
@@ -25,11 +24,9 @@ chrome.runtime.onInstalled.addListener(() => {
     chrome.webNavigation.onCompleted.addListener(() => {
         const queryOptions = { currentWindow: true };
         chrome.tabs.query(queryOptions, (tabs) => {
-            console.log(tabs);
             tabs.forEach((tab) => {
-                if (tab?.id && !tabSet.has(tab.id)) {
+                if (tab?.id) {
                     changeCursor(tab.id);
-                    tabSet.add(tab.id);
                 }
             });
         });
@@ -37,13 +34,5 @@ chrome.runtime.onInstalled.addListener(() => {
         url: [
             { urlMatches: `(http|https).*` },
         ]
-    });
-    // on page close
-    chrome.tabs.onRemoved.addListener((tabId) => {
-        tabSet.delete(tabId);
-    });
-    // on page refresh
-    chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-        tabSet.delete(tabId);
     });
 });

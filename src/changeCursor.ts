@@ -1,12 +1,16 @@
 function setCursor(extensionUrl: string, size?: {width: number, height: number}) {
+    const existed = document.getElementById('asoul-cursor');
+    if(existed) {
+        return;
+    }
     const cursor = document.createElement("img");
     const assetsUrl = extensionUrl + "assets";
+    cursor.id = "asoul-cursor";
     cursor.src = assetsUrl + '/ava/9.gif';
     cursor.style.position = "absolute";
     cursor.style.pointerEvents = "none";
     cursor.style.zIndex = "9999";
     cursor.style.visibility = "hidden";
-    cursor.style.cursor = "none";
     if(size){
         cursor.style.width = size.width + "px";
         cursor.style.height = size.height + "px";
@@ -52,12 +56,19 @@ function setCursor(extensionUrl: string, size?: {width: number, height: number})
             lastCursorType = cursorType;
             (e.target as any).style.cursor = 'none';
             if(cursorType === 'pointer'){
+                cursor.style.visibility = "visible";
                 cursor.src = assetsUrl + '/ava/4.gif';
             }
             else if(cursorType === 'auto' || cursorType === 'default' || cursorType === 'none'){
+                cursor.style.visibility = "visible";
                 cursor.src = assetsUrl + '/ava/9.gif';
-            }else{
-                console.log(cursorType);
+            }else if(cursorType === 'text'){
+                cursor.style.visibility = "visible";
+                cursor.src = assetsUrl + '/ava/14.gif';
+            } else{
+                cursor.style.visibility = "hidden";
+                (e.target as any).style.cursor = lastCursorType;
+                lastTarget = null;
             }
         }
     });

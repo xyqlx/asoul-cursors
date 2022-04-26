@@ -22,5 +22,5 @@
         "tabs",
         "contextMenus"
     ],
-    "host_permissions": ["https://*/*"]
+    "host_permissions": ["https://*/*", "http://*/*"]
 }
