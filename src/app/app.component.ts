@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { of } from 'rxjs';
 import { CursorRule } from 'src/cursor-rule';
 import { v4 as uuidv4 } from 'uuid';
@@ -9,6 +9,7 @@ import { v4 as uuidv4 } from 'uuid';
   styleUrls: ['./app.component.less']
 })
 export class AppComponent implements OnInit {
+  constructor(private cdRef: ChangeDetectorRef){}
   title = 'asoul-cursors';
   listOfData: any[] = [];
   currentRule?: CursorRule;
@@ -20,10 +21,11 @@ export class AppComponent implements OnInit {
     const port = chrome.runtime.connect({
       name: "getAllRules"
     });
-    port.postMessage({});
     port.onMessage.addListener((msg) => {
       this.listOfData = msg;
+      this.cdRef.detectChanges();
     });
+    port.postMessage({});
   }
   cursorTypes = ['default', 'pointer', 'text'];
   ruleModalVisible = false;
@@ -49,9 +51,11 @@ export class AppComponent implements OnInit {
   handleOk(){
     this.save();
     this.ruleModalVisible = false;
+    this.cdRef.detectChanges();
   }
   handleCancel(){
     this.ruleModalVisible = false;
+    this.cdRef.detectChanges();
   }
   customUpload(cursorType: string){
     return (item: any) => {
@@ -98,7 +102,6 @@ export class AppComponent implements OnInit {
     const port = chrome.runtime.connect({
       name: "getRule"
     });
-    port.postMessage({id: rule.id});
     port.onMessage.addListener((msg) => {
       this.currentRule = msg;
       this.currentRuleSizeSwitch = {
@@ -107,6 +110,8 @@ export class AppComponent implements OnInit {
         'text': this.enableSize('text')
       }
       this.ruleModalVisible = true;
+      this.cdRef.detectChanges();
     });
+    port.postMessage({id: rule.id});
   }
 }
