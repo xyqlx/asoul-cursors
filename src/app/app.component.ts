@@ -2,6 +2,8 @@ import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { of } from 'rxjs';
 import { CursorRule } from 'src/cursor-rule';
 import { v4 as uuidv4 } from 'uuid';
+import pako from 'pako';
+import { DomSanitizer } from '@angular/platform-browser';
 
 @Component({
   selector: 'app-root',
@@ -9,15 +11,19 @@ import { v4 as uuidv4 } from 'uuid';
   styleUrls: ['./app.component.less']
 })
 export class AppComponent implements OnInit {
-  constructor(private cdRef: ChangeDetectorRef){}
+  constructor(private cdRef: ChangeDetectorRef, private sanitizer: DomSanitizer) { }
   title = 'asoul-cursors';
   listOfData: any[] = [];
   currentRule?: CursorRule;
-  currentRuleSizeSwitch?: { [cursorType: string]: boolean};
+  currentRuleSizeSwitch?: { [cursorType: string]: boolean };
   ngOnInit() {
     this.loadData();
   }
-  loadData(){
+  // work for some image dataUrl
+  public getSantizeUrl(url: string) {
+    return this.sanitizer.bypassSecurityTrustUrl(url);
+  }
+  loadData() {
     const port = chrome.runtime.connect({
       name: "getAllRules"
     });
@@ -28,22 +34,22 @@ export class AppComponent implements OnInit {
     port.postMessage({});
   }
   cursorTypes = ['default', 'pointer', 'text'];
-  friendlyNames: {[cursorType: string]: string} = {
+  friendlyNames: { [cursorType: string]: string } = {
     'default': '默认',
     'pointer': '超链接',
     'text': '文本'
   };
   ruleModalVisible = false;
   loading = false;
-  add(){
+  add() {
     this.currentRule = new CursorRule(
       uuidv4(),
       '',
       '',
       {
-        'default': { data: '', center: {x: 0, y: 0}, size: { width: 32, height: 32 } },
-        'pointer': { data: '', center: {x: 0, y: 0}, size: { width: 32, height: 32 } },
-        'text': { data: '', center: {x: 0, y: 0}, size: { width: 32, height: 32 } }
+        'default': { data: '', center: { x: 0, y: 0 }, size: { width: 32, height: 32 } },
+        'pointer': { data: '', center: { x: 0, y: 0 }, size: { width: 32, height: 32 } },
+        'text': { data: '', center: { x: 0, y: 0 }, size: { width: 32, height: 32 } }
       }
     );
     this.currentRuleSizeSwitch = {
@@ -53,16 +59,16 @@ export class AppComponent implements OnInit {
     }
     this.ruleModalVisible = true;
   }
-  handleOk(){
+  handleOk() {
     this.save();
     this.ruleModalVisible = false;
     this.cdRef.detectChanges();
   }
-  handleCancel(){
+  handleCancel() {
     this.ruleModalVisible = false;
     this.cdRef.detectChanges();
   }
-  customUpload(cursorType: string){
+  customUpload(cursorType: string) {
     return (item: any) => {
       const file = item.file;
       const reader = new FileReader();
@@ -74,36 +80,40 @@ export class AppComponent implements OnInit {
       return of().subscribe();
     };
   }
-  enableSize(cursorType: string){
+  enableSize(cursorType: string) {
     return this.currentRule?.cursor[cursorType]?.size !== undefined;
   }
-  switchSize(cursorType: string, enable: boolean){
-    if(enable){
+  switchSize(cursorType: string, enable: boolean) {
+    if (enable) {
       this.currentRule!.cursor[cursorType].size = {
         width: 32,
         height: 32
       };
-    }else{
+    } else {
       delete this.currentRule!.cursor[cursorType].size;
     }
   }
-  save(){
+  save() {
     const port = chrome.runtime.connect({
       name: "addRule"
     });
+    port.onMessage.addListener((msg) => {
+      this.loadData();
+    });
     port.postMessage(this.currentRule);
-    this.loadData();
   }
-  deleteRule(ruleId: string){
+  deleteRule(ruleId: string) {
     const port = chrome.runtime.connect({
       name: "deleteRule"
+    });
+    port.onMessage.addListener((msg) => {
+      this.loadData();
     });
     port.postMessage({
       id: ruleId
     });
-    this.loadData();
   }
-  editRule(rule: CursorRule){
+  editRule(rule: CursorRule) {
     const port = chrome.runtime.connect({
       name: "getRule"
     });
@@ -117,6 +127,50 @@ export class AppComponent implements OnInit {
       this.ruleModalVisible = true;
       this.cdRef.detectChanges();
     });
-    port.postMessage({id: rule.id});
+    port.postMessage({ id: rule.id });
+  }
+  importData() {
+    // 打开文件选择框
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json.gz';
+    input.onchange = (e) => {
+      const file = input.files![0];
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const data = new Uint8Array(reader.result as ArrayBuffer);
+        // decompress data
+        const decompressedData = pako.inflate(data, { to: 'string' });
+        const json = JSON.parse(decompressedData);
+        const port = chrome.runtime.connect({
+          name: "importData"
+        });
+        port.onMessage.addListener((msg) => {
+          this.loadData();
+        });
+        port.postMessage(json);
+      }
+      reader.readAsArrayBuffer(file);
+    }
+    input.click();
+  }
+  exportData() {
+    const port = chrome.runtime.connect({
+      name: "exportData"
+    });
+    port.onMessage.addListener((msg) => {
+      const data = msg;
+      // compress data to gzip
+      const compressedData = pako.gzip(JSON.stringify(data));
+
+      const blob = new Blob([compressedData], { type: 'application/x-gzip' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      // use datetime to avoid conflict
+      a.download = `asoul-cursors${new Date().toISOString()}.json.gz`;
+      a.click();
+    });
+    port.postMessage({});
   }
 }

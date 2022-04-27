@@ -10,7 +10,7 @@
     <tbody>
       <tr *ngFor="let data of basicTable.data">
         <td>{{ data.name }}</td>
-        <td>{{ data.pattern }}</td>
+        <td><pre>{{ data.pattern }}</pre></td>
         <td>
           <a (click)="editRule(data)">编辑</a>
           <nz-divider nzType="vertical"></nz-divider>
@@ -21,6 +21,8 @@
   </nz-table>
   <div class="button-panel">
     <button nz-button nzType="primary" (click)="add()">添加规则</button>
+    <button nz-button nzType="default" (click)="importData()">导入</button>
+    <button nz-button nzType="default" (click)="exportData()">导出</button>
   </div>
   <nz-modal [nzWidth]="800" [(nzVisible)]="ruleModalVisible" nzTitle="规则设置" (nzOnCancel)="handleCancel()"
     (nzOnOk)="handleOk()">
@@ -35,7 +37,7 @@
               <i class="upload-icon" nz-icon nzType='plus'></i>
               <div class="ant-upload-text">{{friendlyNames[item]}}</div>
             </div>
-            <img *ngIf="currentRule!.cursor[item].data" [src]="currentRule!.cursor[item].data" alt="cursor image"
+            <img *ngIf="currentRule!.cursor[item].data" [src]="getSantizeUrl(currentRule!.cursor[item].data)" alt="cursor image"
               class="upload-image" />
           </nz-upload>
           <div *ngIf="currentRule" class="size-panel">

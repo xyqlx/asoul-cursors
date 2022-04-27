@@ -4,18 +4,29 @@ db.version(1).stores({
     cursorRules: '&id, name',
     cursorImageData: '&id'
 });
-function setCursor(cursorMap: { [cursorType: string]: { data: string, center: {x: number, y: number}, size?: { width: number, height: number } } }, extensionUrl: string) {
+function setCursor(cursorMap: { [cursorType: string]: { data: string, center: { x: number, y: number }, size?: { width: number, height: number } } }, extensionUrl: string, force: boolean) {
     const existed = document.getElementById('asoul-cursor');
     if (existed) {
-        return;
+        if (force) {
+            // 这个window似乎与console里的window不同
+            (window as any)?.removeAsoulCursor();
+        } else {
+            return;
+        }
     }
-    cursorMap = {...cursorMap};
+    cursorMap = { ...cursorMap };
     cursorMap['auto'] = cursorMap['default'];
     cursorMap['none'] = cursorMap['default'];
     const cursor = document.createElement("img");
     const assetsUrl = extensionUrl + "assets";
     cursor.id = "asoul-cursor";
-    cursor.src = assetsUrl + '/ava/9.gif';
+    if (cursorMap['default'].data) {
+        cursor.src = cursorMap['default'].data;
+        if (cursorMap['default'].size) {
+            cursor.style.width = cursorMap['default'].size?.width + 'px';
+            cursor.style.height = cursorMap['default'].size?.height + 'px';
+        }
+    }
     cursor.style.position = "absolute";
     cursor.style.pointerEvents = "none";
     cursor.style.zIndex = "9999";
@@ -43,19 +54,20 @@ function setCursor(cursorMap: { [cursorType: string]: { data: string, center: {x
     };
     window.addEventListener("mousemove", onmousemove);
     document.addEventListener("dragover", onmousemove);
-    window.addEventListener("scroll", (e) => {
+    const onscroll = (e: Event) => {
         scrollFlag = true;
         if (lastX === -1 || lastY === -1) {
             return;
         }
         cursor.style.left = lastX + window.scrollX - offsetX + "px";
         cursor.style.top = lastY + window.scrollY - offsetY + "px";
-    });
+    };
+    window.addEventListener("scroll", onscroll);
     let inited = false;
     let lastTarget: HTMLElement | null = null;
     let lastCursorType = 'none';
     // check mouseover target
-    document.addEventListener('mouseover', function (e) {
+    const onmouseover = (e: MouseEvent) => {
         if (!inited) {
             // document.documentElement.style.cursor = 'none';
             cursor.style.visibility = 'visible';
@@ -86,7 +98,7 @@ function setCursor(cursorMap: { [cursorType: string]: { data: string, center: {x
                 lastTarget = null;
             }
             lastCursorType = cursorType;
-            for(const c of cursorTypes){
+            for (const c of cursorTypes) {
                 if (cursorType === c) {
                     const cursorData = cursorMap[cursorType];
                     if (cursorData.data) {
@@ -100,7 +112,7 @@ function setCursor(cursorMap: { [cursorType: string]: { data: string, center: {x
                         }
                         centerX = cursorData.center.x;
                         centerY = cursorData.center.y;
-                    }else{
+                    } else {
                         // 原来的光标样式
                         cursor.style.visibility = "hidden";
                     }
@@ -108,12 +120,35 @@ function setCursor(cursorMap: { [cursorType: string]: { data: string, center: {x
                 }
             }
         }
-    });
+    };
+    document.addEventListener('mouseover', onmouseover);
     // add cursor
     document.body.appendChild(cursor);
+    (window as any).removeAsoulCursor = () => {
+        document.removeEventListener('mouseover', onmouseover);
+        window.removeEventListener("scroll", onscroll);
+        window.removeEventListener("mousemove", onmousemove);
+        document.removeEventListener("dragover", onmousemove);
+        document.body.removeChild(cursor);
+    }
+    // add listener to dom changed
+    let observer = new MutationObserver(mutations => {
+        for(let mutation of mutations) {
+            mutation.removedNodes.forEach(node => {
+                // if node's id is 'asoul-cursor'
+                if ((node as any).id === 'asoul-cursor') {
+                    // remove listener
+                    // observer.disconnect();
+                    // 是的百度就会在HistoryStateUpdated之后修改dom
+                    document.body.appendChild(cursor);
+                }
+            });
+         }
+    });
+    observer.observe(document, { childList: true, subtree: true });
 }
 
-export default function changeCursor(tabId: number) {
+export default function changeCursor(tabId: number, force: boolean) {
     chrome.tabs.get(tabId, async (tab) => {
         const tabUrl = tab.url;
         // if tabUrl regex match https or http
@@ -122,7 +157,7 @@ export default function changeCursor(tabId: number) {
         }
         const extensionUrl = chrome.runtime.getURL("");
         const cursorRules = await db.table('cursorRules').toArray();
-        const rules: {pattern: string, id: string}[] = [];
+        const rules: { pattern: string, id: string }[] = [];
         cursorRules.forEach((rule) => {
             rule.pattern.split('\n').forEach((pattern: string) => {
                 rules.push({
@@ -131,19 +166,19 @@ export default function changeCursor(tabId: number) {
                 });
             });
         });
-        // sort rules by pattern
+        // sort rules by pattern desc
         rules.sort((a, b) => {
             if (a.pattern < b.pattern) {
-                return -1;
+                return 1;
             }
             if (a.pattern > b.pattern) {
-                return 1;
+                return -1;
             }
             return 0;
         });
         // find matched rule
-        let matchedRule: {pattern: string, id: string} | null = null;
-        for(const rule of rules){
+        let matchedRule: { pattern: string, id: string } | null = null;
+        for (const rule of rules) {
             if (tabUrl.startsWith(rule.pattern)) {
                 matchedRule = rule;
                 break;
@@ -158,7 +193,7 @@ export default function changeCursor(tabId: number) {
             chrome.scripting.executeScript({
                 target: { tabId: tabId },
                 func: setCursor,
-                args: [rule.cursor, extensionUrl]
+                args: [rule.cursor, extensionUrl, force]
             });
         }
     });

@@ -30,22 +30,24 @@ chrome.contextMenus.onClicked.addListener(
         }
     }
 );
-chrome.webNavigation.onCompleted.addListener(() => {
+function injectCursor(force = false){
     const queryOptions = { };
     chrome.tabs.query(queryOptions, (tabs) => {
         tabs.forEach((tab) => {
             if (tab?.id) {
-                changeCursor(tab.id);
+                changeCursor(tab.id, force);
             }
         });
     });
-}, {
-    url: [
-        { urlMatches: `(http|https).*` },
-    ]
+}
+chrome.webNavigation.onCompleted.addListener(() => {
+    injectCursor();
+});
+chrome.webNavigation.onHistoryStateUpdated.addListener((e) => {
+    changeCursor(e.tabId, false);
 });
 chrome.runtime.onConnect.addListener((port) => {
-    if (port.name == "getAllRules") {
+    if (port.name === "getAllRules") {
         port.onMessage.addListener(async (msg) => {
             const cursorRules = await db.table('cursorRules').toArray();
             port.postMessage(cursorRules);
@@ -61,6 +63,7 @@ chrome.runtime.onConnect.addListener((port) => {
         });
     }
     else if(port.name === "addRule"){
+        // 其实这里应该加个重复检测
         port.onMessage.addListener(async (msg) => {
             const cursorRule = msg as CursorRule;
             const cursorImageData: {[cursorType: string]: string} = {};
@@ -70,11 +73,30 @@ chrome.runtime.onConnect.addListener((port) => {
             });
             await db.table('cursorRules').put(cursorRule);
             await db.table('cursorImageData').put({id: cursorRule.id, data: cursorImageData});
+            injectCursor(true);
+            port.postMessage({});
         });
     }else if(port.name === "deleteRule"){
         port.onMessage.addListener(async (msg) => {
             await db.table('cursorRules').delete(msg.id);
             await db.table('cursorImageData').delete(msg.id);
+            injectCursor(true);
+            port.postMessage({});
+        });
+    }else if(port.name === "exportData"){
+        port.onMessage.addListener(async (msg) => {
+            port.postMessage({
+                cursorRules: await db.table('cursorRules').toArray(),
+                cursorImageData: await db.table('cursorImageData').toArray()
+            })
+        });
+    }else if(port.name === 'importData'){
+        port.onMessage.addListener(async (msg) => {
+            const {cursorRules, cursorImageData} = msg;
+            await db.table('cursorRules').bulkPut(cursorRules);
+            await db.table('cursorImageData').bulkPut(cursorImageData);
+            injectCursor(true);
+            port.postMessage({});
         });
     }
 })
