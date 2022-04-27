@@ -33,7 +33,7 @@
             [nzCustomRequest]="customUpload(item)">
             <div *ngIf="!currentRule!.cursor[item].data">
               <i class="upload-icon" nz-icon nzType='plus'></i>
-              <div class="ant-upload-text">{{item}}</div>
+              <div class="ant-upload-text">{{friendlyNames[item]}}</div>
             </div>
             <img *ngIf="currentRule!.cursor[item].data" [src]="currentRule!.cursor[item].data" alt="cursor image"
               class="upload-image" />

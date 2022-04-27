@@ -28,12 +28,17 @@ export class AppComponent implements OnInit {
     port.postMessage({});
   }
   cursorTypes = ['default', 'pointer', 'text'];
+  friendlyNames: {[cursorType: string]: string} = {
+    'default': '默认',
+    'pointer': '超链接',
+    'text': '文本'
+  };
   ruleModalVisible = false;
   loading = false;
   add(){
     this.currentRule = new CursorRule(
       uuidv4(),
-      '怎么会是呢',
+      '',
       '',
       {
         'default': { data: '', center: {x: 0, y: 0}, size: { width: 32, height: 32 } },
