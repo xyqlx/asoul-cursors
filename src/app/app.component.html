@@ -49,6 +49,16 @@
                 [(ngModel)]="currentRule!.cursor[item].size!.height"></nz-input-number>
             </div>
           </div>
+          <div *ngIf="currentRule" class="size-panel">
+            <span>光标中心</span>
+            <div *ngIf="currentRule!.cursor[item].size">
+              <nz-input-number class="size-input-number" title="x偏移" [nzMin]="1"
+                [(ngModel)]="currentRule!.cursor[item].center.x"></nz-input-number>
+              <span>⭕</span>
+              <nz-input-number class="size-input-number" title="y偏移" [nzMin]="1"
+                [(ngModel)]="currentRule!.cursor[item].center.y"></nz-input-number>
+            </div>
+          </div>
         </div>
       </div>
     </ng-container>

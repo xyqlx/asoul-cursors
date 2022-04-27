@@ -4,7 +4,7 @@ db.version(1).stores({
     cursorRules: '&id, name',
     cursorImageData: '&id'
 });
-function setCursor(cursorMap: { [cursorType: string]: { data: string, size?: { width: number, height: number } } }, extensionUrl: string) {
+function setCursor(cursorMap: { [cursorType: string]: { data: string, center: {x: number, y: number}, size?: { width: number, height: number } } }, extensionUrl: string) {
     const existed = document.getElementById('asoul-cursor');
     if (existed) {
         return;
@@ -27,12 +27,14 @@ function setCursor(cursorMap: { [cursorType: string]: { data: string, size?: { w
     let offsetX = 0;
     let offsetY = 0;
     let scrollFlag = false;
+    let centerX = 0;
+    let centerY = 0;
     // change mouse position
     const onmousemove = (e: any) => {
         lastX = e.pageX;
         lastY = e.pageY;
-        cursor.style.left = lastX + "px";
-        cursor.style.top = lastY + "px";
+        cursor.style.left = (lastX - centerX) + "px";
+        cursor.style.top = (lastY - centerY) + "px";
         if (scrollFlag) {
             offsetX = window.scrollX;
             offsetY = window.scrollY;
@@ -96,6 +98,8 @@ function setCursor(cursorMap: { [cursorType: string]: { data: string, size?: { w
                             cursor.style.width = cursorData.size.width + 'px';
                             cursor.style.height = cursorData.size.height + 'px';
                         }
+                        centerX = cursorData.center.x;
+                        centerY = cursorData.center.y;
                     }else{
                         // 原来的光标样式
                         cursor.style.visibility = "hidden";

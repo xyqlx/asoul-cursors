@@ -36,9 +36,9 @@ export class AppComponent implements OnInit {
       '怎么会是呢',
       '',
       {
-        'default': { data: '', size: { width: 32, height: 32 } },
-        'pointer': { data: '', size: { width: 32, height: 32 } },
-        'text': { data: '', size: { width: 32, height: 32 } }
+        'default': { data: '', center: {x: 0, y: 0}, size: { width: 32, height: 32 } },
+        'pointer': { data: '', center: {x: 0, y: 0}, size: { width: 32, height: 32 } },
+        'text': { data: '', center: {x: 0, y: 0}, size: { width: 32, height: 32 } }
       }
     );
     this.currentRuleSizeSwitch = {
