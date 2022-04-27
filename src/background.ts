@@ -1,6 +1,7 @@
 import changeCursor from "./change-cursor";
 import { CursorRule } from "./cursor-rule";
 import Dexie, { Table } from 'dexie';
+import Pako from "pako";
 
 const db = new Dexie("AsoulCursor");
 db.version(1).stores({
@@ -13,6 +14,20 @@ chrome.runtime.onInstalled.addListener(() => {
         id: 'setting',
         title: 'ASOUL光标规则设置',
         contexts: ['page', 'action']
+    });
+    // if database is empty, add default cursor rule
+    db.table('cursorRules').count().then(async (count) => {
+        if (count === 0) {
+            // read default cursor rule from file
+            const file = await fetch('assets/default.json.gz');
+            const dataBuffer = await file.arrayBuffer();
+            const data = new Uint8Array(dataBuffer);
+            // decompress data
+            const decompressedData = Pako.inflate(data, { to: 'string' });
+            const json = JSON.parse(decompressedData);
+            await db.table('cursorRules').bulkPut(json.cursorRules);
+            await db.table('cursorImageData').bulkPut(json.cursorImageData);
+        }
     });
 });
 chrome.contextMenus.onClicked.addListener(
@@ -30,8 +45,8 @@ chrome.contextMenus.onClicked.addListener(
         }
     }
 );
-function injectCursor(force = false){
-    const queryOptions = { };
+function injectCursor(force = false) {
+    const queryOptions = {};
     chrome.tabs.query(queryOptions, (tabs) => {
         tabs.forEach((tab) => {
             if (tab?.id) {
@@ -51,8 +66,8 @@ chrome.runtime.onConnect.addListener((port) => {
         port.onMessage.addListener(async (msg) => {
             const cursorRules = await db.table('cursorRules').toArray();
             port.postMessage(cursorRules);
-       });
-    }else if(port.name === "getRule"){
+        });
+    } else if (port.name === "getRule") {
         port.onMessage.addListener(async (msg) => {
             const cursorRule = await db.table('cursorRules').get(msg.id);
             const cursorImageData = await db.table('cursorImageData').get(msg.id);
@@ -62,37 +77,37 @@ chrome.runtime.onConnect.addListener((port) => {
             port.postMessage(cursorRule);
         });
     }
-    else if(port.name === "addRule"){
+    else if (port.name === "addRule") {
         // 其实这里应该加个重复检测
         port.onMessage.addListener(async (msg) => {
             const cursorRule = msg as CursorRule;
-            const cursorImageData: {[cursorType: string]: string} = {};
+            const cursorImageData: { [cursorType: string]: string } = {};
             Object.keys(cursorRule.cursor).forEach((cursorType) => {
                 cursorImageData[cursorType] = cursorRule.cursor[cursorType].data;
                 cursorRule.cursor[cursorType].data = '';
             });
             await db.table('cursorRules').put(cursorRule);
-            await db.table('cursorImageData').put({id: cursorRule.id, data: cursorImageData});
+            await db.table('cursorImageData').put({ id: cursorRule.id, data: cursorImageData });
             injectCursor(true);
             port.postMessage({});
         });
-    }else if(port.name === "deleteRule"){
+    } else if (port.name === "deleteRule") {
         port.onMessage.addListener(async (msg) => {
             await db.table('cursorRules').delete(msg.id);
             await db.table('cursorImageData').delete(msg.id);
             injectCursor(true);
             port.postMessage({});
         });
-    }else if(port.name === "exportData"){
+    } else if (port.name === "exportData") {
         port.onMessage.addListener(async (msg) => {
             port.postMessage({
                 cursorRules: await db.table('cursorRules').toArray(),
                 cursorImageData: await db.table('cursorImageData').toArray()
             })
         });
-    }else if(port.name === 'importData'){
+    } else if (port.name === 'importData') {
         port.onMessage.addListener(async (msg) => {
-            const {cursorRules, cursorImageData} = msg;
+            const { cursorRules, cursorImageData } = msg;
             await db.table('cursorRules').bulkPut(cursorRules);
             await db.table('cursorImageData').bulkPut(cursorImageData);
             injectCursor(true);
