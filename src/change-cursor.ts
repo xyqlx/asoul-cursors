@@ -1,7 +1,8 @@
 import Dexie, { Table } from 'dexie';
 const db = new Dexie("AsoulCursor");
 db.version(1).stores({
-    cursorRules: '&id, name'
+    cursorRules: '&id, name',
+    cursorImageData: '&id'
 });
 function setCursor(cursorMap: { [cursorType: string]: { data: string, size?: { width: number, height: number } } }, extensionUrl: string) {
     const existed = document.getElementById('asoul-cursor');
@@ -59,40 +60,48 @@ function setCursor(cursorMap: { [cursorType: string]: { data: string, size?: { w
             inited = true;
         }
         if (e.target) {
+            // 恢复上次修改的cursor style
             if (lastTarget) {
                 if (lastCursorType !== 'none' && lastCursorType !== 'auto' && lastCursorType !== 'default') {
                     // 这句可能会导致 Forced reflow while executing JavaScript took 54ms
                     lastTarget.style.cursor = lastCursorType;
                 }
             }
+            // 获取target和cursor type
             lastTarget = e.target as any;
             let cursorType = lastTarget!.style.cursor;
             if (cursorType === '') {
                 cursorType = window.getComputedStyle(e.target as any)["cursor"];
             }
-            (e.target as any).style.cursor = 'none';
+            // 无需改变图片
             if (lastCursorType === cursorType) {
                 return;
             }
-            lastCursorType = cursorType;
-            
             const cursorTypes = ['default', 'pointer', 'text', 'auto', 'none'];
-            cursorTypes.forEach((cursorType) => {
-                if (cursorType === cursorType) {
+            // 隐藏图片
+            if (cursorTypes.indexOf(cursorType) === -1) {
+                cursor.style.visibility = "hidden";
+                lastTarget = null;
+            }
+            lastCursorType = cursorType;
+            for(const c of cursorTypes){
+                if (cursorType === c) {
                     const cursorData = cursorMap[cursorType];
-                    if (cursorData) {
+                    if (cursorData.data) {
+                        // 隐藏光标
+                        (e.target as any).style.cursor = 'none';
+                        cursor.style.visibility = "visible";
                         cursor.src = cursorData.data;
                         if (cursorData.size) {
                             cursor.style.width = cursorData.size.width + 'px';
                             cursor.style.height = cursorData.size.height + 'px';
                         }
+                    }else{
+                        // 原来的光标样式
+                        cursor.style.visibility = "hidden";
                     }
+                    break;
                 }
-            });            
-            if (cursorTypes.indexOf(cursorType) === -1) {
-                cursor.style.visibility = "hidden";
-                (e.target as any).style.cursor = lastCursorType;
-                lastTarget = null;
             }
         }
     });
