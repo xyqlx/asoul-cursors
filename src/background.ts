@@ -11,7 +11,7 @@ db.version(1).stores({
 chrome.runtime.onInstalled.addListener(() => {
     chrome.contextMenus.create({
         id: 'setting',
-        title: '光标设置',
+        title: '光标规则设置',
         contexts: ['page', 'action']
     });
 });
