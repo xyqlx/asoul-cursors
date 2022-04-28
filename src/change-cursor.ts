@@ -27,43 +27,22 @@ function setCursor(cursorMap: { [cursorType: string]: { data: string, center: { 
             cursor.style.height = cursorMap['default'].size?.height + 'px';
         }
     }
-    cursor.style.position = "absolute";
+    cursor.style.position = "fixed";
     cursor.style.pointerEvents = "none";
     // bilibili投币界面zindex怎么是10k，梁木了
     cursor.style.zIndex = "2147483647";
     cursor.style.visibility = "hidden";
     console.log(`勇敢牛牛，不怕困难！插件设置见 ${extensionUrl}/index.html`);
     // add listener to mousemove
-    let lastX = -1;
-    let lastY = -1;
-    let offsetX = 0;
-    let offsetY = 0;
-    let scrollFlag = false;
     let centerX = 0;
     let centerY = 0;
     // change mouse position
-    const onmousemove = (e: any) => {
-        lastX = e.pageX;
-        lastY = e.pageY;
-        cursor.style.left = (lastX - centerX) + "px";
-        cursor.style.top = (lastY - centerY) + "px";
-        if (scrollFlag) {
-            offsetX = window.scrollX;
-            offsetY = window.scrollY;
-            scrollFlag = false;
-        }
+    const onmousemove = (e: MouseEvent | DragEvent) => {
+        cursor.style.left = (e.clientX - centerX) + "px";
+        cursor.style.top = (e.clientY - centerY) + "px";
     };
     window.addEventListener("mousemove", onmousemove);
     document.addEventListener("dragover", onmousemove);
-    const onscroll = (e: Event) => {
-        scrollFlag = true;
-        if (lastX === -1 || lastY === -1) {
-            return;
-        }
-        cursor.style.left = lastX + window.scrollX - offsetX + "px";
-        cursor.style.top = lastY + window.scrollY - offsetY + "px";
-    };
-    window.addEventListener("scroll", onscroll);
     let inited = false;
     let lastTarget: HTMLElement | null = null;
     let lastCursorType = 'none';
@@ -142,7 +121,6 @@ function setCursor(cursorMap: { [cursorType: string]: { data: string, center: { 
     observer.observe(document, { childList: true, subtree: true });
     (window as any).removeAsoulCursor = () => {
         document.removeEventListener('mouseover', onmouseover);
-        window.removeEventListener("scroll", onscroll);
         window.removeEventListener("mousemove", onmousemove);
         document.removeEventListener("dragover", onmousemove);
         observer.disconnect();
