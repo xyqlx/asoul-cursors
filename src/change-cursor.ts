@@ -29,7 +29,8 @@ function setCursor(cursorMap: { [cursorType: string]: { data: string, center: { 
     }
     cursor.style.position = "absolute";
     cursor.style.pointerEvents = "none";
-    cursor.style.zIndex = "9999";
+    // bilibili投币界面zindex怎么是10k，梁木了
+    cursor.style.zIndex = "2147483647";
     cursor.style.visibility = "hidden";
     console.log(`勇敢牛牛，不怕困难！插件设置见 ${extensionUrl}/index.html`);
     // add listener to mousemove
