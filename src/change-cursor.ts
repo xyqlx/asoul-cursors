@@ -9,7 +9,6 @@ function setCursor(cursorMap: { [cursorType: string]: { data: string, center: { 
     if (existed) {
         if (force) {
             // 这个window似乎与console里的window不同
-            document.removeChild(existed);
             (window as any)?.removeAsoulCursor();
         } else {
             return;
@@ -126,16 +125,6 @@ function setCursor(cursorMap: { [cursorType: string]: { data: string, center: { 
     document.addEventListener('mouseover', onmouseover);
     // add cursor
     document.body.appendChild(cursor);
-    (window as any).removeAsoulCursor = () => {
-        document.removeEventListener('mouseover', onmouseover);
-        window.removeEventListener("scroll", onscroll);
-        window.removeEventListener("mousemove", onmousemove);
-        document.removeEventListener("dragover", onmousemove);
-        const lastCursor = document.getElementById('asoul-cursor');
-        if(lastCursor){
-            document.body.removeChild(lastCursor);
-        }
-    }
     // add listener to dom changed
     let observer = new MutationObserver(mutations => {
         for(let mutation of mutations) {
@@ -151,6 +140,17 @@ function setCursor(cursorMap: { [cursorType: string]: { data: string, center: { 
          }
     });
     observer.observe(document, { childList: true, subtree: true });
+    (window as any).removeAsoulCursor = () => {
+        document.removeEventListener('mouseover', onmouseover);
+        window.removeEventListener("scroll", onscroll);
+        window.removeEventListener("mousemove", onmousemove);
+        document.removeEventListener("dragover", onmousemove);
+        observer.disconnect();
+        const lastCursor = document.getElementById('asoul-cursor');
+        if(lastCursor){
+            document.body.removeChild(lastCursor);
+        }
+    }
 }
 
 export default function changeCursor(tabId: number, force: boolean) {
