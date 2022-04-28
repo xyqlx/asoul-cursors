@@ -9,6 +9,7 @@ function setCursor(cursorMap: { [cursorType: string]: { data: string, center: { 
     if (existed) {
         if (force) {
             // 这个window似乎与console里的window不同
+            document.removeChild(existed);
             (window as any)?.removeAsoulCursor();
         } else {
             return;
@@ -130,7 +131,10 @@ function setCursor(cursorMap: { [cursorType: string]: { data: string, center: { 
         window.removeEventListener("scroll", onscroll);
         window.removeEventListener("mousemove", onmousemove);
         document.removeEventListener("dragover", onmousemove);
-        document.body.removeChild(cursor);
+        const lastCursor = document.getElementById('asoul-cursor');
+        if(lastCursor){
+            document.body.removeChild(lastCursor);
+        }
     }
     // add listener to dom changed
     let observer = new MutationObserver(mutations => {
