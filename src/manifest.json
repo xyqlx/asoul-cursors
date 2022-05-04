@@ -1,13 +1,12 @@
 {
-    "name": "ASOUL光标",
+    "name": "A-SOUL鼠标指针",
     "version": "1.0",
-    "description": "多希望你能看到",
+    "description": "根据网页地址自动切换设定的鼠标指针",
     "manifest_version": 3,
     "background": {
         "service_worker": "background.js"
     },
     "action": {
-        "default_popup": "index.html",
         "default_icon": {
             "16": "/assets/images/icon16.png",
             "32": "/assets/images/icon32.png",

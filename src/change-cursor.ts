@@ -37,7 +37,7 @@ function setCursor(cursorMap: { [cursorType: string]: { data: string, center: { 
     // bilibili投币界面zindex怎么是10k，梁木了
     cursor.style.zIndex = "2147483647";
     cursor.style.visibility = "hidden";
-    console.log(`ASOUL光标插件设置见 ${extensionUrl}/index.html`);
+    console.log(`A-SOUL鼠标指针插件设置见 ${extensionUrl}/index.html`);
     // add listener to mousemove
     let centerX = 0;
     let centerY = 0;

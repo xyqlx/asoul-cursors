@@ -10,10 +10,25 @@ db.version(1).stores({
     environment: '&key'
 });
 
+function createWindow(){
+    chrome.windows.create({
+        url: chrome.runtime.getURL("index.html"),
+        type: "popup",
+        width: 900,
+        height: 900,
+    }, function (win) {
+        // win represents the Window object from windows API
+        // Do something after opening
+    });
+}
+chrome.action.onClicked.addListener(function(tab) {
+    createWindow();
+});
+
 chrome.runtime.onInstalled.addListener(() => {
     chrome.contextMenus.create({
         id: 'setting',
-        title: 'ASOUL光标规则设置',
+        title: 'A-SOUL鼠标指针规则设置',
         contexts: ['page', 'action']
     });
     // if database is empty, add default cursor rule
@@ -39,15 +54,7 @@ chrome.runtime.onInstalled.addListener(() => {
 chrome.contextMenus.onClicked.addListener(
     (info, tab) => {
         if (info.menuItemId === 'setting') {
-            chrome.windows.create({
-                url: chrome.runtime.getURL("index.html"),
-                type: "popup",
-                width: 900,
-                height: 900,
-            }, function (win) {
-                // win represents the Window object from windows API
-                // Do something after opening
-            });
+            createWindow();
         }
     }
 );
