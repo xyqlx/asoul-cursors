@@ -6,14 +6,9 @@
   <br>
 </h1>
 
-根据网页地址切换鼠标指针，鼠标指针与匹配规则可以设置。
+根据网页地址切换鼠标指针的Chrome扩展，鼠标指针与匹配网址可以自行设置。
 
-## build
-
-```shell
-npm install
-npm run build
-```
+![demo](README/banner_5.gif)
 
 ## 功能介绍
 
@@ -47,6 +42,13 @@ npm run build
 ### 导入和导出
 
 将保存的规则（包含光标图片数据）打包为.gz文件，实现不同用户之间的规则共享。
+
+## build
+
+```shell
+npm install
+npm run build
+```
 
 ## 项目思路简介
 
