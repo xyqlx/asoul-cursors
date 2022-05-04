@@ -1,4 +1,8 @@
 <div class="main">
+  <div class="button-panel">
+    <nz-switch [(ngModel)]="enable" (ngModelChange)="switchEnable()"
+              nzCheckedChildren="启用" nzUnCheckedChildren="禁用"></nz-switch>
+  </div>
   <nz-table #basicTable [nzData]="listOfData">
     <thead>
       <tr>

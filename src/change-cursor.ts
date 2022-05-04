@@ -1,8 +1,10 @@
 import Dexie, { Table } from 'dexie';
+import { CursorRule } from './cursor-rule';
 const db = new Dexie("AsoulCursor");
 db.version(1).stores({
     cursorRules: '&id, name',
-    cursorImageData: '&id'
+    cursorImageData: '&id',
+    environment: '&key'
 });
 function setCursor(cursorMap: { [cursorType: string]: { data: string, center: { x: number, y: number }, size?: { width: number, height: number } } }, extensionUrl: string, force: boolean) {
     const existed = document.getElementById('asoul-cursor');
@@ -14,11 +16,14 @@ function setCursor(cursorMap: { [cursorType: string]: { data: string, center: { 
             return;
         }
     }
+    // if cursorMap has no keys, return
+    if (!Object.keys(cursorMap).length) {
+        return;
+    }
     cursorMap = { ...cursorMap };
     cursorMap['auto'] = cursorMap['default'];
     cursorMap['none'] = cursorMap['default'];
     const cursor = document.createElement("img");
-    const assetsUrl = extensionUrl + "assets";
     cursor.id = "asoul-cursor";
     if (cursorMap['default'].data) {
         cursor.src = cursorMap['default'].data;
@@ -32,7 +37,7 @@ function setCursor(cursorMap: { [cursorType: string]: { data: string, center: { 
     // bilibili投币界面zindex怎么是10k，梁木了
     cursor.style.zIndex = "2147483647";
     cursor.style.visibility = "hidden";
-    console.log(`勇敢牛牛，不怕困难！插件设置见 ${extensionUrl}/index.html`);
+    console.log(`ASOUL光标插件设置见 ${extensionUrl}/index.html`);
     // add listener to mousemove
     let centerX = 0;
     let centerY = 0;
@@ -46,6 +51,7 @@ function setCursor(cursorMap: { [cursorType: string]: { data: string, center: { 
     let inited = false;
     let lastTarget: HTMLElement | null = null;
     let lastCursorType = 'none';
+    const cursorTypeCache: Map<HTMLElement, string> = new Map();
     // check mouseover target
     const onmouseover = (e: MouseEvent) => {
         if (!inited) {
@@ -54,44 +60,60 @@ function setCursor(cursorMap: { [cursorType: string]: { data: string, center: { 
             inited = true;
         }
         if (e.target) {
-            // 恢复上次修改的cursor style
-            if (lastTarget) {
-                if (lastCursorType !== 'none' && lastCursorType !== 'auto' && lastCursorType !== 'default') {
-                    // 这句可能会导致 Forced reflow while executing JavaScript took 54ms
-                    lastTarget.style.cursor = lastCursorType;
-                }
-            }
             // 获取target和cursor type
-            lastTarget = e.target as any;
-            let cursorType = lastTarget!.style.cursor;
+            const target = e.target as HTMLElement;
+            let cursorType = target.style.cursor;
+            // if target is descendants of last target
             if (cursorType === '') {
                 cursorType = window.getComputedStyle(e.target as any)["cursor"];
             }
-            // 无需改变图片
-            if (lastCursorType === cursorType) {
-                return;
+            if(cursorType === 'none'){
+                if(lastTarget && lastTarget.contains(target)){
+                    cursorType = lastCursorType;
+                    target.style.cursor = cursorType;
+                }
+                if(cursorTypeCache.has(target)){
+                    cursorType = cursorTypeCache.get(target)!;
+                }
+                // console.log('none: ' + lastCursorType);
             }
+            // console.log(target);
+            // console.log('check cursor style ', cursorType);
+            lastTarget = target;
             const cursorTypes = ['default', 'pointer', 'text', 'auto', 'none'];
             // 隐藏图片
             if (cursorTypes.indexOf(cursorType) === -1) {
                 cursor.style.visibility = "hidden";
-                lastTarget = null;
             }
-            lastCursorType = cursorType;
             for (const c of cursorTypes) {
                 if (cursorType === c) {
                     const cursorData = cursorMap[cursorType];
                     if (cursorData.data) {
-                        // 隐藏光标
-                        (e.target as any).style.cursor = 'none';
-                        cursor.style.visibility = "visible";
-                        cursor.src = cursorData.data;
-                        if (cursorData.size) {
-                            cursor.style.width = cursorData.size.width + 'px';
-                            cursor.style.height = cursorData.size.height + 'px';
+                        // 恢复cursor style
+                        if (cursorType !== 'none') {
+                            cursorTypeCache.set(target, cursorType);
+                            const event = () => {
+                                // 这句可能会导致 Forced reflow while executing JavaScript took 54ms
+                                target!.style.cursor = cursorType;
+                                // console.log(target);
+                                // console.log('restore cursor style ', cursorType);
+                                target!.removeEventListener("mouseleave", event);
+                                cursorTypeCache.delete(target);
+                            }
+                            target!.addEventListener("mouseleave", event);
                         }
-                        centerX = cursorData.center.x;
-                        centerY = cursorData.center.y;
+                        // 隐藏光标
+                        target.style.cursor = 'none';
+                        cursor.style.visibility = "visible";
+                        if (lastCursorType !== cursorType) {
+                            cursor.src = cursorData.data;
+                            if (cursorData.size) {
+                                cursor.style.width = cursorData.size.width + 'px';
+                                cursor.style.height = cursorData.size.height + 'px';
+                            }
+                            centerX = cursorData.center.x;
+                            centerY = cursorData.center.y;
+                        }
                     } else {
                         // 原来的光标样式
                         cursor.style.visibility = "hidden";
@@ -99,6 +121,7 @@ function setCursor(cursorMap: { [cursorType: string]: { data: string, center: { 
                     break;
                 }
             }
+            lastCursorType = cursorType;
         }
     };
     document.addEventListener('mouseover', onmouseover);
@@ -106,7 +129,7 @@ function setCursor(cursorMap: { [cursorType: string]: { data: string, center: { 
     document.body.appendChild(cursor);
     // add listener to dom changed
     let observer = new MutationObserver(mutations => {
-        for(let mutation of mutations) {
+        for (let mutation of mutations) {
             mutation.removedNodes.forEach(node => {
                 // if node's id is 'asoul-cursor'
                 if ((node as any).id === 'asoul-cursor') {
@@ -116,7 +139,7 @@ function setCursor(cursorMap: { [cursorType: string]: { data: string, center: { 
                     document.body.appendChild(cursor);
                 }
             });
-         }
+        }
     });
     observer.observe(document, { childList: true, subtree: true });
     (window as any).removeAsoulCursor = () => {
@@ -125,13 +148,13 @@ function setCursor(cursorMap: { [cursorType: string]: { data: string, center: { 
         document.removeEventListener("dragover", onmousemove);
         observer.disconnect();
         const lastCursor = document.getElementById('asoul-cursor');
-        if(lastCursor){
+        if (lastCursor) {
             document.body.removeChild(lastCursor);
         }
     }
 }
 
-export default function changeCursor(tabId: number, force: boolean) {
+export default function changeCursor(cursorRules: CursorRule[], rules: { pattern: string, id: string }[], tabId: number, force: boolean) {
     chrome.tabs.get(tabId, async (tab) => {
         const tabUrl = tab.url;
         // if tabUrl regex match https or http
@@ -139,26 +162,6 @@ export default function changeCursor(tabId: number, force: boolean) {
             return;
         }
         const extensionUrl = chrome.runtime.getURL("");
-        const cursorRules = await db.table('cursorRules').toArray();
-        const rules: { pattern: string, id: string }[] = [];
-        cursorRules.forEach((rule) => {
-            rule.pattern.split('\n').forEach((pattern: string) => {
-                rules.push({
-                    pattern: pattern.trim(),
-                    id: rule.id
-                });
-            });
-        });
-        // sort rules by pattern desc
-        rules.sort((a, b) => {
-            if (a.pattern < b.pattern) {
-                return 1;
-            }
-            if (a.pattern > b.pattern) {
-                return -1;
-            }
-            return 0;
-        });
         // find matched rule
         let matchedRule: { pattern: string, id: string } | null = null;
         for (const rule of rules) {
@@ -168,7 +171,7 @@ export default function changeCursor(tabId: number, force: boolean) {
             }
         }
         if (matchedRule !== null) {
-            const rule = cursorRules.find((rule) => rule.id === matchedRule!.id);
+            const rule = cursorRules.find((rule) => rule.id === matchedRule!.id) as CursorRule;
             const cursorImageData = await db.table('cursorImageData').get(rule!.id);
             Object.keys(rule.cursor).forEach((cursorType) => {
                 rule.cursor[cursorType].data = cursorImageData.data[cursorType];
@@ -177,6 +180,12 @@ export default function changeCursor(tabId: number, force: boolean) {
                 target: { tabId: tabId },
                 func: setCursor,
                 args: [rule.cursor, extensionUrl, force]
+            });
+        } else if (force) {
+            chrome.scripting.executeScript({
+                target: { tabId: tabId },
+                func: setCursor,
+                args: [{}, extensionUrl, force]
             });
         }
     });

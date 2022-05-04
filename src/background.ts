@@ -6,7 +6,8 @@ import Pako from "pako";
 const db = new Dexie("AsoulCursor");
 db.version(1).stores({
     cursorRules: '&id, name',
-    cursorImageData: '&id'
+    cursorImageData: '&id',
+    environment: '&key'
 });
 
 chrome.runtime.onInstalled.addListener(() => {
@@ -29,6 +30,11 @@ chrome.runtime.onInstalled.addListener(() => {
             await db.table('cursorImageData').bulkPut(json.cursorImageData);
         }
     });
+    db.table('environment').count().then(async (count) => {
+        if (count === 0) {
+            await db.table('environment').put({ 'key': 'enable', 'value': true });
+        }
+    });
 });
 chrome.contextMenus.onClicked.addListener(
     (info, tab) => {
@@ -45,21 +51,50 @@ chrome.contextMenus.onClicked.addListener(
         }
     }
 );
-function injectCursor(force = false) {
+async function injectCursor(force = false) {
+    const { cursorRules, rules } = await getCursorRules();
     const queryOptions = {};
     chrome.tabs.query(queryOptions, (tabs) => {
         tabs.forEach((tab) => {
             if (tab?.id) {
-                changeCursor(tab.id, force);
+                changeCursor(cursorRules, rules, tab.id, force);
             }
         });
     });
 }
-chrome.webNavigation.onCompleted.addListener(() => {
-    injectCursor();
+async function getCursorRules(){
+    const enable = await db.table('environment').get('enable');
+    const cursorRules = enable.value ? await db.table('cursorRules').toArray() : [];
+    const rules: { pattern: string, id: string }[] = [];
+    cursorRules.forEach((rule) => {
+        rule.pattern.split('\n').forEach((pattern: string) => {
+            rules.push({
+                pattern: pattern.trim(),
+                id: rule.id
+            });
+        });
+    });
+    // sort rules by pattern desc
+    rules.sort((a, b) => {
+        if (a.pattern < b.pattern) {
+            return 1;
+        }
+        if (a.pattern > b.pattern) {
+            return -1;
+        }
+        return 0;
+    });
+    return {
+        cursorRules,
+        rules
+    }
+}
+chrome.webNavigation.onCompleted.addListener(async () => {
+    await injectCursor();
 });
-chrome.webNavigation.onHistoryStateUpdated.addListener((e) => {
-    changeCursor(e.tabId, false);
+chrome.webNavigation.onHistoryStateUpdated.addListener(async (e) => {
+    const { cursorRules, rules } = await getCursorRules();
+    changeCursor(cursorRules, rules, e.tabId, false);
 });
 chrome.runtime.onConnect.addListener((port) => {
     if (port.name === "getAllRules") {
@@ -112,6 +147,17 @@ chrome.runtime.onConnect.addListener((port) => {
             await db.table('cursorImageData').bulkPut(cursorImageData);
             injectCursor(true);
             port.postMessage({});
+        });
+    } else if (port.name === 'switchEnable') {
+        port.onMessage.addListener(async (msg) => {
+            await db.table('environment').put({ 'key': 'enable', 'value': msg });
+            injectCursor(true);
+            port.postMessage({});
+        });
+    } else if (port.name === 'getEnable') {
+        port.onMessage.addListener(async (msg) => {
+            const enable = await db.table('environment').get('enable');
+            port.postMessage(enable.value);
         });
     }
 })

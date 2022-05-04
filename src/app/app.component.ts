@@ -16,6 +16,7 @@ export class AppComponent implements OnInit {
   listOfData: any[] = [];
   currentRule?: CursorRule;
   currentRuleSizeSwitch?: { [cursorType: string]: boolean };
+  enable = true;
   ngOnInit() {
     this.loadData();
   }
@@ -24,11 +25,19 @@ export class AppComponent implements OnInit {
     return this.sanitizer.bypassSecurityTrustUrl(url);
   }
   loadData() {
-    const port = chrome.runtime.connect({
+    let port = chrome.runtime.connect({
       name: "getAllRules"
     });
     port.onMessage.addListener((msg) => {
       this.listOfData = msg;
+      this.cdRef.detectChanges();
+    });
+    port.postMessage({});
+    port = chrome.runtime.connect({
+      name: "getEnable"
+    });
+    port.onMessage.addListener((msg) => {
+      this.enable = msg;
       this.cdRef.detectChanges();
     });
     port.postMessage({});
@@ -58,6 +67,15 @@ export class AppComponent implements OnInit {
       'text': true
     }
     this.ruleModalVisible = true;
+  }
+  switchEnable(){
+    const port = chrome.runtime.connect({
+      name: "switchEnable"
+    });
+    port.onMessage.addListener((msg) => {
+      
+    });
+    port.postMessage(this.enable);
   }
   handleOk() {
     this.save();
