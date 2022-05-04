@@ -125,6 +125,17 @@ function setCursor(cursorMap: { [cursorType: string]: { data: string, center: { 
         }
     };
     document.addEventListener('mouseover', onmouseover);
+    // add listener to fullscreen change
+    const onfullscreenchange = () => {
+        if (document.fullscreenElement) {
+            // move asoul-cursor to this element
+            document.fullscreenElement.appendChild(cursor);
+        } else {
+            // move asoul-cursor back to body
+            document.body.appendChild(cursor);
+        }
+    }
+    document.addEventListener('fullscreenchange', onfullscreenchange);
     // add cursor
     document.body.appendChild(cursor);
     // add listener to dom changed
@@ -136,7 +147,10 @@ function setCursor(cursorMap: { [cursorType: string]: { data: string, center: { 
                     // remove listener
                     // observer.disconnect();
                     // 是的百度就会在HistoryStateUpdated之后修改dom
-                    document.body.appendChild(cursor);
+                    const existed = document.getElementById('asoul-cursor');
+                    if (!existed) {
+                        document.body.appendChild(cursor);
+                    }
                 }
             });
         }
